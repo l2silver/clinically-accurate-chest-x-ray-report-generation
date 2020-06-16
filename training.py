@@ -21,7 +21,7 @@ import encoder
 import decoder
 
 
-# In[42]:
+# In[44]:
 
 
 import importlib
@@ -134,7 +134,7 @@ class Im2pGenerator(object):
                     scores = pack_padded_sequence(predictions, greaterThan0Lengths, batch_first=True).data
 
                     # Calculate loss
-                    wordLoss = wordLoss self.criterionWord(scores, targets)
+                    wordLoss = wordLoss + self.criterionWord(scores, targets)
                     
             loss = wordLoss + sentenceLoss
             self.optimizer.zero_grad()
@@ -144,18 +144,6 @@ class Im2pGenerator(object):
 
                     
             break
-#                     for word_index in range(1, word2d.shape[2] - 1):
-#                         words_pred = self.wordRNN.forward(topic_vec=topic_vec,
-#                                                           captions=captions[:, sentence_index, :word_index])
-#                         caption_mask = (captions[:, sentence_index, word_index] > 1).view(-1,).float().cuda()
-#                         t_loss = self.criterion(words_pred, self.__to_var(captions[:, sentence_index, word_index]))
-#                         t_loss = t_loss * caption_mask
-#                         word_loss += t_loss.sum()
-
-#             loss = self.args.lambda_word * word_loss
-#             loss.backward()
-#             self.optimizer.step()
-#             train_loss += loss.data[0]
 
         return train_loss
     
@@ -168,22 +156,4 @@ class Im2pGenerator(object):
 
 im2p = Im2pGenerator()
 im2p.train()
-
-
-# In[25]:
-
-
-loss = nn.CrossEntropyLoss()
-input = torch.randn(3, 5, requires_grad=True)
-target = torch.empty(3, dtype=torch.long).random_(5)
-print(input.size())
-print(target.size())
-# output = loss(input, target)
-# output.backward()
-
-
-# In[ ]:
-
-
-
 
