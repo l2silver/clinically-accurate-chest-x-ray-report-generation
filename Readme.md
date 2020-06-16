@@ -11,7 +11,7 @@ Implementation based on the following repos:
 ## To Do
 
 - [ ] Add pretrained embedder to word decoder
-- [ ] Add loss functions
+- [x] Add loss functions
 - [ ] word encoder should output a vector representing hot encoding of word
 - [ ] reinforcement learning section
 - [ ] add validation section
