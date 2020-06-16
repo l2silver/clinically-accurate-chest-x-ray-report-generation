@@ -163,7 +163,6 @@ class WordRNN(nn.Module):
         # Sort input data by decreasing lengths
         # caption_lenghts will contain the sorted lengths, and sort_ind contains the sorted elements indices 
         caption_lengths, sort_ind = caption_lengths.sort(dim=0, descending=True)
-
         #The sort_ind contains elements of the batch index of the tensor encoder_out. For example, if sort_ind is [3,2,0],
         #then that means the descending order starts with batch number 3,then batch number 2, and finally batch number 0. 
         spatial_image = spatial_image[sort_ind]           # (batch_size,num_pixels,hidden_size) with sorted batches
@@ -179,7 +178,7 @@ class WordRNN(nn.Module):
         h,c = self.init_hidden_state(enc_image)          # (batch_size, hidden_size)
 
 #         # We won't decode at the <end> position, since we've finished generating as soon as we generate <end>
-        decode_lengths = (caption_lengths - 1).tolist()
+        decode_lengths = (caption_lengths).tolist()
             
         # Create tensors to hold word predicion scores,alphas and betas
         predictions = torch.zeros(batch_size, max(decode_lengths), self.vocab_size).to(self.device)

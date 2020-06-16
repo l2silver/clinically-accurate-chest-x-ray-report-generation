@@ -1,47 +1,50 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[34]:
+# In[27]:
 
 
 import importlib
-import Preprocessing
-importlib.reload(Preprocessing)
+import preprocessing
+import torch
+importlib.reload(preprocessing)
 
 DEVICE= torch.device('cpu')
-trainloader = Preprocessing.TrainLoader(DEVICE).trainloader
+trainloader = preprocessing.TrainLoader(DEVICE).trainloader
+dic = preprocessing.dic
 
 
-# In[35]:
+# In[28]:
 
 
-import Encoder
-import Decoder
+import encoder
+import decoder
 
 
-# In[38]:
+# In[42]:
 
 
 import importlib
-importlib.reload(Decoder)
-importlib.reload(Encoder)
+importlib.reload(decoder)
+importlib.reload(encoder)
 import os
 import pickle
 import time
 import numpy as np
 
-import torch
+
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import transforms
+from torch.nn.utils.rnn import pack_padded_sequence
 
 # from utils.data_loader import get_loader, Vocabulary
 # from utils.model import *
 # from utils.logger import Logger
-EncoderCNN = Encoder.EncoderCNN
-SentenceRNN = Decoder.SentenceRNN
-WordRNN = Decoder.WordRNN
+EncoderCNN = encoder.EncoderCNN
+SentenceRNN = decoder.SentenceRNN
+WordRNN = decoder.WordRNN
 
 EPOCHS = 2
 LEARNING_RATE = 0.1
@@ -56,8 +59,9 @@ class Im2pGenerator(object):
 
         self.encoderCNN = EncoderCNN()
         self.sentenceRNN = SentenceRNN()
-        self.wordRNN = WordRNN(hidden_size=256, vocab_size=2000, att_dim=256, embed_size=256, encoded_dim=256, device=DEVICE)
-        self.criterion = nn.BCELoss(size_average=False, reduce=False)
+        self.wordRNN = WordRNN(hidden_size=256, vocab_size=len(dic), att_dim=256, embed_size=256, encoded_dim=256, device=DEVICE)
+        self.criterionSentence = nn.BCELoss(size_average=False, reduce=False)
+        self.criterionWord = nn.CrossEntropyLoss().to(DEVICE)
         self.optimizer = torch.optim.Adam(params=(
             list(self.encoderCNN.parameters()) + list(self.sentenceRNN.parameters()) + list(self.wordRNN.parameters())
         ), lr=LEARNING_RATE)
@@ -90,28 +94,19 @@ class Im2pGenerator(object):
         self.sentenceRNN.train()
         
         for i, (images, findings, sentenceVectors, word2d, wordsLengths) in enumerate(self.train_data_loader):
-            print('in for loop', i)
-            """"""
-            
             featureMap, globalFeatures = self.encoderCNN.forward(images)
             sentence_states = None
 
-            sentence_loss = 0
             word_loss = 0
             word2d = word2d.permute(1, 0, 2) #(sentenceIndex, batchSize, maxWordsInSentence)
             for sentenceIndex, sentence_value in enumerate(sentenceVectors):
-                print('-----SI-----', sentenceIndex)
                 endToken, topic_vec, sentence_states = self.sentenceRNN.forward(globalFeatures, sentence_states)
                 endToken = endToken.squeeze(1).squeeze(1)
                 """***TODO*** Should stop calculating loss for sentences once they're done."""
-                loss = self.criterion(endToken, sentence_value.type(torch.float)).sum()
-                sentence_loss += loss
+                sentenceLoss = self.criterionSentence(endToken, sentence_value.type(torch.float)).sum()
                 
-#                 print('words2d', word2d.size())
-#                 print('wordsLengths', len(wordsLengths), wordsLengths)
                 captions=word2d[sentenceIndex]
                 captionLengths=wordsLengths[sentenceIndex]
-#                 print('captions', captions.size())
                 if(any(captionLengths)):
                     predictions, alphas, betas, encoded_captions, decode_lengths, sort_ind = self.wordRNN.forward(
                         enc_image=featureMap,
@@ -119,6 +114,37 @@ class Im2pGenerator(object):
                         encoded_captions=captions,
                         caption_lengths=captionLengths
                     )
+                    # predictions: (batch_size, largest_sentence_in_batch_size, vocab_size)
+                    targets = captions
+
+                    # Remove timesteps that we didn't decode at, or are pads
+                    # pack_padded_sequence is an easy trick to do this
+
+                    greaterThan0LengthIndeces = list() #remove length 0 sentences
+                    greaterThan0Lengths = list()
+                    for i, length in enumerate(decode_lengths):
+                        if(length > 0):
+                            greaterThan0LengthIndeces.append(i)
+                            greaterThan0Lengths.append(length)
+                    targets = targets[greaterThan0LengthIndeces]
+                    predictions = predictions[greaterThan0LengthIndeces]
+
+                    targets = pack_padded_sequence(targets, greaterThan0Lengths, batch_first=True).data
+                    scores = pack_padded_sequence(predictions, greaterThan0Lengths, batch_first=True).data
+
+                    # Calculate loss
+                    wordLoss = self.criterionWord(scores, targets)
+                    loss = sentenceLoss + wordLoss
+                    
+                else:
+                    loss = sentenceLoss
+                
+                self.optimizer.zero_grad()
+
+                # Update weights
+                loss.backward()
+                self.optimizer.step()
+
                     
             break
 #                     for word_index in range(1, word2d.shape[2] - 1):
@@ -135,7 +161,7 @@ class Im2pGenerator(object):
 #             train_loss += loss.data[0]
 
         return train_loss
-
+    
 
     def __get_date(self):
         return str(time.strftime('%Y%m%d', time.gmtime()))
@@ -145,4 +171,22 @@ class Im2pGenerator(object):
 
 im2p = Im2pGenerator()
 im2p.train()
+
+
+# In[25]:
+
+
+loss = nn.CrossEntropyLoss()
+input = torch.randn(3, 5, requires_grad=True)
+target = torch.empty(3, dtype=torch.long).random_(5)
+print(input.size())
+print(target.size())
+# output = loss(input, target)
+# output.backward()
+
+
+# In[ ]:
+
+
+
 

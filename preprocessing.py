@@ -14,7 +14,7 @@
 # 
 # 
 
-# In[117]:
+# In[1]:
 
 
 ### Data Preparation
@@ -30,8 +30,6 @@ from PIL import Image
 
 MAX_NUMBER_OF_SENTENCES=15
 MAX_SENTENCE_LENGTH=55
-
-dic = Dictionary()
 
 preprocess = transforms.Compose([
     transforms.Resize(256),
@@ -60,14 +58,8 @@ class Doc():
                 dicAbstractText[val['@Label']] = val['#text']
         return dicAbstractText
 
-import re
 def cleanWord(str):
     return re.sub("\.$|\,$", "", str).lower()
-
-# def cleanWords(arr):
-#     for i in range(len(arr)):
-#         arr[i] = cleanWord(arr[i])
-#     return arr
 
 class Dictionary():
     EOS = '<eos>'
@@ -90,6 +82,9 @@ class Dictionary():
     def getWordId(self, word):
         cw , _id = self.addWord(word)
         return _id
+    
+    def __len__(self):
+        return self.nextId
 
     
 class ImagePaths():
@@ -226,7 +221,8 @@ class TrainLoader:
         trainSet, testSet = torch.utils.data.random_split(dataset, [trainSize, dataset.__len__() - trainSize])
         self.trainloader = torch.utils.data.DataLoader(trainSet, batch_size=batchSize,
                                           shuffle=True, num_workers=2)
-        
+
+dic = Dictionary()
 
 
 # In[118]:
