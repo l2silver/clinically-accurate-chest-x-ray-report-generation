@@ -12,7 +12,7 @@ Implementation based on the following repos:
 
 - [ ] Add pretrained embedder to word decoder
 - [x] Add loss functions
-- [ ] word encoder should output a vector representing hot encoding of word
+- [x] word encoder should output a vector representing hot encoding of word
 - [ ] reinforcement learning section
 - [ ] add validation section
 - [ ] add testing section
