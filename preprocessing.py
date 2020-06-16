@@ -206,6 +206,7 @@ class ImagesReports(Dataset):
         image = self.getImage(imagePath)        
         reportId = self.getReportIdFromImagePath(imagePath)
         return (
+#             image.to(self.device),
             image,
             self.reports[reportId]["findings"], #str
             self.reports[reportId]["encodedSentence"], #[1,1,0...]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import torch.nn as nn
@@ -51,7 +51,7 @@ class SentenceRNN(nn.Module):
 #         return p, topic, states
 
 
-# In[2]:
+# In[3]:
 
 
 import torch.nn.functional as F
@@ -115,7 +115,7 @@ class AdaptiveAttention(nn.Module):
         return out_l, att_weights, beta_value
 
 
-# In[3]:
+# In[4]:
 
 
 # https://github.com/fawazsammani/knowing-when-to-look-adaptive-attention/blob/master/models.py
@@ -204,10 +204,4 @@ class WordRNN(nn.Module):
             alphas[:batch_size_t, timestep, :] = alpha_t
             betas[:batch_size_t, timestep, :] = beta_t
         return predictions, alphas, betas, encoded_captions, decode_lengths, sort_ind 
-
-
-# In[ ]:
-
-
-
 

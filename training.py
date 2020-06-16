@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[27]:
+# In[19]:
 
 
 import importlib
@@ -9,19 +9,19 @@ import preprocessing
 import torch
 importlib.reload(preprocessing)
 
-DEVICE= torch.device('cpu')
+DEVICE= torch.device('cuda:0' if torch.cuda.is_available() else "cpu")
 trainloader = preprocessing.TrainLoader(DEVICE).trainloader
 dic = preprocessing.dic
 
 
-# In[28]:
+# In[20]:
 
 
 import encoder
 import decoder
 
 
-# In[44]:
+# In[33]:
 
 
 import importlib
@@ -92,8 +92,13 @@ class Im2pGenerator(object):
         self.encoderCNN.train()
         self.wordRNN.train()
         self.sentenceRNN.train()
+        self.encoderCNN.to(DEVICE)
+        self.wordRNN.to(DEVICE)
+        self.sentenceRNN.to(DEVICE)
         
         for i, (images, findings, sentenceVectors, word2d, wordsLengths) in enumerate(self.train_data_loader):
+            images = images.to(DEVICE)
+            word2d = word2d.to(DEVICE)
             featureMap, globalFeatures = self.encoderCNN.forward(images)
             sentence_states = None
             loss = 0
@@ -103,8 +108,10 @@ class Im2pGenerator(object):
             for sentenceIndex, sentence_value in enumerate(sentenceVectors):
                 endToken, topic_vec, sentence_states = self.sentenceRNN.forward(globalFeatures, sentence_states)
                 endToken = endToken.squeeze(1).squeeze(1)
+#                 print(endToken.type())
+#                 print(sentence_value.type(torch.float).type())
                 """***TODO*** Should stop calculating loss for sentences once they're done."""
-                sentenceLoss = sentenceLoss + self.criterionSentence(endToken, sentence_value.type(torch.float)).sum()
+                sentenceLoss = sentenceLoss + self.criterionSentence(endToken, sentence_value.type(torch.float).to(DEVICE)).sum()
                 
                 captions=word2d[sentenceIndex]
                 captionLengths=wordsLengths[sentenceIndex]
@@ -156,4 +163,16 @@ class Im2pGenerator(object):
 
 im2p = Im2pGenerator()
 im2p.train()
+
+
+# In[4]:
+
+
+torch.cuda.is_available()
+
+
+# In[ ]:
+
+
+
 
