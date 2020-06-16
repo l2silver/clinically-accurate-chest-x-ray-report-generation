@@ -96,14 +96,15 @@ class Im2pGenerator(object):
         for i, (images, findings, sentenceVectors, word2d, wordsLengths) in enumerate(self.train_data_loader):
             featureMap, globalFeatures = self.encoderCNN.forward(images)
             sentence_states = None
-
-            word_loss = 0
+            loss = 0
+            sentenceLoss = 0
+            wordLoss = 0
             word2d = word2d.permute(1, 0, 2) #(sentenceIndex, batchSize, maxWordsInSentence)
             for sentenceIndex, sentence_value in enumerate(sentenceVectors):
                 endToken, topic_vec, sentence_states = self.sentenceRNN.forward(globalFeatures, sentence_states)
                 endToken = endToken.squeeze(1).squeeze(1)
                 """***TODO*** Should stop calculating loss for sentences once they're done."""
-                sentenceLoss = self.criterionSentence(endToken, sentence_value.type(torch.float)).sum()
+                sentenceLoss = sentenceLoss + self.criterionSentence(endToken, sentence_value.type(torch.float)).sum()
                 
                 captions=word2d[sentenceIndex]
                 captionLengths=wordsLengths[sentenceIndex]
@@ -133,17 +134,13 @@ class Im2pGenerator(object):
                     scores = pack_padded_sequence(predictions, greaterThan0Lengths, batch_first=True).data
 
                     # Calculate loss
-                    wordLoss = self.criterionWord(scores, targets)
-                    loss = sentenceLoss + wordLoss
+                    wordLoss = wordLoss self.criterionWord(scores, targets)
                     
-                else:
-                    loss = sentenceLoss
-                
-                self.optimizer.zero_grad()
-
-                # Update weights
-                loss.backward()
-                self.optimizer.step()
+            loss = wordLoss + sentenceLoss
+            self.optimizer.zero_grad()
+            # Update weights
+            loss.backward()
+            self.optimizer.step()
 
                     
             break
