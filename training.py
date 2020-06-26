@@ -149,9 +149,6 @@ class Im2pGenerator(object):
             loss.backward()
             self.optimizer.step()
 
-                    
-            break
-
         return train_loss
     
 
@@ -163,16 +160,4 @@ class Im2pGenerator(object):
 
 im2p = Im2pGenerator()
 im2p.train()
-
-
-# In[4]:
-
-
-torch.cuda.is_available()
-
-
-# In[ ]:
-
-
-
 
